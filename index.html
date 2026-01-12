@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision 2026 | Sistema de Monitoreo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        :root {
+            --bg-deep: #050507;
+            --card-bg: #0f0f13;
+            --accent: #3b82f6;
+            --text-main: #e2e8f0;
+            --text-muted: #64748b;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow-x: hidden;
+            padding-bottom: 80px;
+        }
+
+        .glass-header {
+            background: rgba(5, 5, 7, 0.8);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .camera-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .camera-card:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+            transform: translateY(-4px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 */
+            background: #000;
+            overflow: hidden;
+        }
+
+        .video-container iframe, 
+        .video-container video, 
+        .video-container img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            object-fit: cover;
+        }
+
+        /* Estilo para los reproductores directos de la UCN */
+        .ucn-player {
+            transform: scale(1.01); /* Pequeño ajuste para cubrir bordes */
+        }
+
+        /* ZOOM ESPECÍFICO PARA PÁGINA PRINCIPAL UCN */
+        .clean-web-ucn {
+            width: 170% !important; 
+            height: 170% !important;
+            top: -45% !important;   
+            left: -35% !important;  
+        }
+
+        .btn-action {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s;
+        }
+
+        .btn-action:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 0.5; }
+        }
+
+        .input-dark {
+            background: #16161c;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: border-color 0.2s;
+        }
+
+        .input-dark:focus { border-color: var(--accent); outline: none; }
+
+        /* Animación de carga de grid */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .camera-card { animation: slideUp 0.5s ease forwards; }
+    </style>
+</head>
+<body>
+
+    <nav class="glass-header sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/30">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tighter text-white">VISION <span class="text-blue-500">2026</span></h1>
+                <p class="text-[9px] uppercase tracking-[0.3em] text-slate-500 font-semibold">Security Control Center</p>
+            </div>
+        </div>
+
+        <button onclick="toggleForm()" class="bg-blue-600 hover:bg-blue-500 px-5 py-2.5 rounded-full flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-blue-600/20">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span class="text-sm font-bold text-white">Añadir Cámara</span>
+        </button>
+    </nav>
+
+    <main class="max-w-[1900px] mx-auto p-4 md:p-8">
+        <!-- Formulario -->
+        <div id="add-form" class="hidden mb-10 p-8 bg-[#0f0f13] border border-white/5 rounded-3xl animate-in fade-in duration-300">
+            <h2 class="text-lg font-bold mb-6 text-white flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                Configurar Nueva Fuente
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <input id="cam-name" type="text" placeholder="Nombre (ej: Puerto Coquimbo)" class="input-dark px-5 py-3.5 rounded-2xl">
+                <input id="cam-url" type="text" placeholder="URL de Video o YouTube" class="input-dark px-5 py-3.5 rounded-2xl">
+                <button onclick="addCamera()" class="bg-white text-black font-bold py-3.5 rounded-2xl hover:bg-blue-500 hover:text-white transition-all">Activar Stream</button>
+            </div>
+        </div>
+
+        <!-- Grid: 4 columnas en pantalla grande -->
+        <div id="camera-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Render via JS -->
+        </div>
+    </main>
+
+    <footer class="fixed bottom-0 left-0 right-0 bg-[#050507]/95 backdrop-blur-md border-t border-white/5 px-6 py-3 flex items-center justify-between text-[10px] text-slate-500 z-40">
+        <div class="flex items-center gap-6 font-medium">
+            <span class="flex items-center gap-2"><span class="status-dot"></span> SISTEMA ONLINE</span>
+            <span id="cam-count" class="bg-white/5 px-2 py-1 rounded">0 CÁMARAS</span>
+            <span class="hidden md:inline text-blue-500/50">ENC: AES-256 BIT</span>
+        </div>
+        <div id="digital-clock" class="font-mono text-blue-500 font-bold text-sm">--:--:--</div>
+    </footer>
+
+    <script>
+        let cameras = [
+            { id: 1, name: "La Serena Av. del Mar (YouTube)", url: "https://www.youtube.com/live/eXSFZxNucGI" },
+            { id: 2, name: "Coquimbo Empalme (YouTube)", url: "https://www.youtube.com/live/JkU7YE5OFOI" },
+            { id: 3, name: "UCN Muelle - Fuente A", url: "https://ucncamcq.ucn.cl:8181/f537af01-e143-49b9-901a-6e6b67be9073.html" },
+            { id: 4, name: "UCN Muelle - Fuente B", url: "https://ucncamcq.ucn.cl:8181/31334bb8-688e-4b31-9024-503a2e88a7b3.html" },
+            { id: 5, name: "Vista Panorámica Muelle", url: "https://cammuelle.ucn.cl/" },
+            { id: 6, name: "Hotel La Serena (Webcam)", url: "https://www.tiempo3.com/south-america/chile/coquimbo/la-serena?page=webcam" },
+            { id: 7, name: "Skyline Serena Live", url: "https://www.skylinewebcams.com/es/webcam/chile/coquimbo/la-serena.html" },
+            { id: 8, name: "Aeródromo La Serena", url: "https://www.outdooractive.com/mobile/en/webcams/la-serena/webcams-in-la-serena/227986689/" }
+        ];
+
+        function toggleForm() {
+            document.getElementById('add-form').classList.toggle('hidden');
+        }
+
+        function getEmbedContent(url) {
+            // YouTube
+            if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                let videoId = '';
+                if (url.includes('live/')) videoId = url.split('live/')[1].split('?')[0];
+                else if (url.includes('v=')) videoId = url.split('v=')[1].split('&')[0];
+                else if (url.includes('youtu.be/')) videoId = url.split('youtu.be/')[1].split('?')[0];
+                return `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&modestbranding=1" allowfullscreen></iframe>`;
+            }
+            
+            // MJPEG / Imágenes directas
+            if (url.match(/\.(jpeg|jpg|gif|png|mjpg|mjpeg)/i)) {
+                return `<img src="${url}" alt="stream">`;
+            }
+
+            // Manejo de UCN y Port 8181
+            const isMainUCN = url.includes('cammuelle.ucn.cl');
+            const isUCNPort = url.includes(':8181');
+            
+            let cssClass = '';
+            if (isMainUCN) cssClass = 'clean-web-ucn';
+            if (isUCNPort) cssClass = 'ucn-player';
+
+            return `<iframe src="${url}" class="${cssClass}" scrolling="no" loading="lazy" allow="autoplay; encrypted-media"></iframe>`;
+        }
+
+        // Esta función abre el link para "desbloquear" el certificado de seguridad si es necesario
+        function syncCamera(url) {
+            window.open(url, '_blank', 'width=400,height=300');
+        }
+
+        function renderCameras() {
+            const grid = document.getElementById('camera-grid');
+            grid.innerHTML = '';
+            document.getElementById('cam-count').innerText = `${cameras.length} CÁMARAS ACTIVAS`;
+
+            cameras.forEach((cam, index) => {
+                const card = document.createElement('div');
+                card.className = 'camera-card rounded-3xl overflow-hidden group';
+                card.style.animationDelay = `${index * 0.1}s`;
+                
+                card.innerHTML = `
+                    <div class="video-container">
+                        ${getEmbedContent(cam.url)}
+                        
+                        <!-- Controles en Hover -->
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                            <button onclick="syncCamera('${cam.url}')" class="p-3 bg-blue-600 text-white rounded-2xl shadow-xl hover:scale-110 transition-transform" title="Sincronizar conexión">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                            </button>
+                            <button onclick="removeCamera(${cam.id})" class="p-3 bg-red-600 text-white rounded-2xl shadow-xl hover:scale-110 transition-transform">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
+
+                        <!-- Badge Superior -->
+                        <div class="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg border border-white/10 text-[9px] font-black text-white uppercase">
+                            <span class="status-dot"></span> Live
+                        </div>
+                    </div>
+                    <div class="p-4 bg-[#0f0f13]">
+                        <div class="flex items-center justify-between">
+                            <div class="truncate mr-2">
+                                <h3 class="text-xs font-bold text-white truncate uppercase tracking-tight">${cam.name}</h3>
+                                <p class="text-[9px] text-slate-500 mt-0.5 font-mono">${cam.url.includes('8181') ? 'Port: 8181' : 'Web Stream'}</p>
+                            </div>
+                            <a href="${cam.url}" target="_blank" class="p-2 text-slate-600 hover:text-blue-500 transition-colors">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline></svg>
+                            </a>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function addCamera() {
+            const name = document.getElementById('cam-name').value;
+            const url = document.getElementById('cam-url').value;
+            if (!url) return;
+            cameras.push({ id: Date.now(), name: name || "Nueva Cámara", url: url });
+            renderCameras();
+            toggleForm();
+        }
+
+        function removeCamera(id) {
+            cameras = cameras.filter(c => c.id !== id);
+            renderCameras();
+        }
+
+        setInterval(() => {
+            document.getElementById('digital-clock').innerText = new Date().toLocaleTimeString();
+        }, 1000);
+
+        renderCameras();
+    </script>
+</body>
+</html>
